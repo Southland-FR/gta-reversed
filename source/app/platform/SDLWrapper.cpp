@@ -18,12 +18,26 @@ void Terminate() {
 
 }
 
+// SEH wrapper to safely poll events (catches MSCTF exceptions in VMs)
+// Must be in separate function because SEH can't be used with C++ objects that have destructors
+static bool SafePollEvent(SDL_Event* e) {
+    __try {
+        return SDL_PollEvent(e);
+    } __except (GetExceptionCode() == 0xe06d7363 ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
+        // Ignore C++ exceptions from MSCTF (Text Services Framework) in VMs
+        return false;
+    }
+}
+
 void ProcessEvents() {
     // Now process events
     const auto* const imCtx = ImGui::GetCurrentContext();
     const auto* const imIO  = imCtx ? &imCtx->IO : nullptr;
-    for (SDL_Event e; SDL_PollEvent(&e);) {
-        if (imIO) {
+    // Check if SDL3 backend is initialized (BackendPlatformUserData is set by ImGui_ImplSDL3_InitForD3D)
+    const bool imSdl3BackendInitialized = imIO && imIO->BackendPlatformUserData;
+    SDL_Event e;
+    while (SafePollEvent(&e)) {
+        if (imSdl3BackendInitialized) {
             ImGui_ImplSDL3_ProcessEvent(&e);
         }
 
@@ -44,7 +58,7 @@ void ProcessEvents() {
             continue;
         }
         case SDL_EVENT_MOUSE_MOTION: {
-            if (notsa::ui::UIRenderer::GetSingleton().IsActive()) {
+            if (notsa::ui::UIRenderer::HasInstance() && notsa::ui::UIRenderer::GetSingleton().IsActive()) {
                 break;
             }
             static CVector2D s_MousePos{};

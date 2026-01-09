@@ -6,7 +6,7 @@ void CEntityScanner::InjectHooks() {
     RH_ScopedClass(CEntityScanner);
     RH_ScopedCategoryGlobal();
 
-    RH_ScopedInstall(Clear, 0x5FF9D0, { .reversed = false });
+    RH_ScopedInstall(Clear, 0x5FF9D0);
     RH_ScopedInstall(ScanForEntitiesInRange, 0x5FFA20, { .reversed = false });
 }
 
@@ -28,7 +28,16 @@ CEntityScanner::~CEntityScanner() {
 
 // 0x5FF9D0
 void CEntityScanner::Clear() {
-    plugin::CallMethod<0x5FF9D0, CEntityScanner*>(this);
+    for (auto& entity : m_apEntities) {
+        if (entity) {
+            entity->CleanUpOldReference(&entity);
+            entity = nullptr;
+        }
+    }
+    if (m_pClosestEntityInRange) {
+        m_pClosestEntityInRange->CleanUpOldReference(&m_pClosestEntityInRange);
+        m_pClosestEntityInRange = nullptr;
+    }
 }
 
 // 0x5FFA20

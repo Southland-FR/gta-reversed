@@ -61,6 +61,12 @@ void FlushObrsPrintfs() {
 
 // This probably should be in winps :D
 LONG WINAPI WindowsExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo) {
+    // Ignore C++ exceptions (0xe06d7363) - these are often from MSCTF in VMs
+    // and should be handled by normal C++ exception handling, not VEH
+    if (pExceptionInfo->ExceptionRecord->ExceptionCode == 0xe06d7363) {
+        return EXCEPTION_CONTINUE_SEARCH;
+    }
+
     // If this function itself crashes it's invoked again
     // So let's prevent the recusion with this simple hack
     static bool s_HasHandled = false;

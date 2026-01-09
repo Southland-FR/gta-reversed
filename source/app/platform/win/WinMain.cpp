@@ -362,6 +362,10 @@ INT WINAPI NOTSA_WinMain(HINSTANCE instance, HINSTANCE hPrevInstance, LPSTR cmdL
     __wargv = nullptr;
 
 #ifdef NOTSA_USE_SDL3
+    // Disable IME to prevent MSCTF crashes in VMs (Parallels, etc.)
+    SDL_SetHint(SDL_HINT_IME_IMPLEMENTED_UI, "0");
+    SDL_SetHint("SDL_IME_SHOW_UI", "0");
+
     SDL_Window* sdlWnd = SDL_CreateWindow(
         APP_CLASS,
         APP_DEFAULT_WIDTH, APP_DEFAULT_HEIGHT,
@@ -369,6 +373,9 @@ INT WINAPI NOTSA_WinMain(HINSTANCE instance, HINSTANCE hPrevInstance, LPSTR cmdL
     );
     PSGLOBAL(sdlWindow) = sdlWnd;
     PSGLOBAL(window) = (HWND)(SDL_GetPointerProperty(SDL_GetWindowProperties(sdlWnd), SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL)); // NOTE/TODO: Hacky, but required due to RW
+
+    // Stop text input to prevent MSCTF from being triggered during event polling
+    SDL_StopTextInput(sdlWnd);
 #else
     PSGLOBAL(window) = Win32_InitInstance(instance);
 #endif
