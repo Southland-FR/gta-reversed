@@ -65,6 +65,10 @@ void CPedGroupIntelligence::Flush() {
     }
     delete std::exchange(m_CurrentEvent, nullptr);
 
+    // Fix double-free: both pointers can reference the same allocator
+    if (m_EventResponseTaskAllocator == m_PrimaryTaskAllocator) {
+        m_EventResponseTaskAllocator = nullptr;
+    }
     delete std::exchange(m_PrimaryTaskAllocator, nullptr);
     delete std::exchange(m_EventResponseTaskAllocator, nullptr);
 
